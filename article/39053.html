@@ -1,0 +1,254 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>New Features of Java 21 - Sequenced Collections | Ratel's Blog</title><meta name="author" content="Ratel"><meta name="copyright" content="Ratel"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="序列集合是Java21的一个正式特性，该特性通过引入新的接口表示具有定义的相遇顺序的集合。每个这样的集合都有定义良好的第一个元素、第二个元素，依此类推，直到最后一个元素。它还提供了统一的api来访问它的第一个和最后一个元素，并以相反的顺序处理它的元素。 1 为什么会有序列集合 Java的集合框架缺少一种集合类型来表示具有定义的相遇顺序的元素序列，它还缺乏适用于这些集合的统一操作集。这些差距一再成为">
+<meta property="og:type" content="article">
+<meta property="og:title" content="New Features of Java 21 - Sequenced Collections">
+<meta property="og:url" content="https://itratel.github.io/article/39053.html">
+<meta property="og:site_name" content="Ratel&#39;s Blog">
+<meta property="og:description" content="序列集合是Java21的一个正式特性，该特性通过引入新的接口表示具有定义的相遇顺序的集合。每个这样的集合都有定义良好的第一个元素、第二个元素，依此类推，直到最后一个元素。它还提供了统一的api来访问它的第一个和最后一个元素，并以相反的顺序处理它的元素。 1 为什么会有序列集合 Java的集合框架缺少一种集合类型来表示具有定义的相遇顺序的元素序列，它还缺乏适用于这些集合的统一操作集。这些差距一再成为">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://itratel.github.io/img/cover/go-env.png">
+<meta property="article:published_time" content="2023-10-24T06:42:44.000Z">
+<meta property="article:modified_time" content="2023-11-07T14:48:09.241Z">
+<meta property="article:author" content="Ratel">
+<meta property="article:tag" content="Java、C++、Golang、Rust、大数据">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://itratel.github.io/img/cover/go-env.png"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://itratel.github.io/article/39053.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"找不到您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: {"limitCount":20,"languages":{"author":"作者: Ratel","link":"链接: ","source":"来源: Ratel's Blog","info":"著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。"}},
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: true,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'New Features of Java 21 - Sequenced Collections',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: false,
+  postUpdate: '2023-11-07 22:48:09'
+}</script><script>(win=>{
+      win.saveToLocal = {
+        set: (key, value, ttl) => {
+          if (ttl === 0) return
+          const now = Date.now()
+          const expiry = now + ttl * 86400000
+          const item = {
+            value,
+            expiry
+          }
+          localStorage.setItem(key, JSON.stringify(item))
+        },
+      
+        get: key => {
+          const itemStr = localStorage.getItem(key)
+      
+          if (!itemStr) {
+            return undefined
+          }
+          const item = JSON.parse(itemStr)
+          const now = Date.now()
+      
+          if (now > item.expiry) {
+            localStorage.removeItem(key)
+            return undefined
+          }
+          return item.value
+        }
+      }
+    
+      win.getScript = (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        script.onerror = reject
+        script.onload = script.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          script.onload = script.onreadystatechange = null
+          resolve()
+        }
+
+        Object.keys(attr).forEach(key => {
+          script.setAttribute(key, attr[key])
+        })
+
+        document.head.appendChild(script)
+      })
+    
+      win.getCSS = (url, id = false) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onerror = reject
+        link.onload = link.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          link.onload = link.onreadystatechange = null
+          resolve()
+        }
+        document.head.appendChild(link)
+      })
+    
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+      const detectApple = () => {
+        if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+          document.documentElement.classList.add('apple')
+        }
+      }
+      detectApple()
+    })(window)</script><!-- hexo injector head_end start --><link rel="stylesheet" href="https://cdn.cbd.int/hexo-butterfly-clock-anzhiyu/lib/clock.min.css" /><!-- hexo injector head_end end --><meta name="generator" content="Hexo 6.3.0"></head><body><div id="web_bg"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/img/tantaijin.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">16</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">29</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">11</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友情链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('/img/cover/go-env.png')"><nav id="nav"><span id="blog-info"><a href="/" title="Ratel's Blog"><span class="site-name">Ratel's Blog</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友情链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">New Features of Java 21 - Sequenced Collections</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2023-10-24T06:42:44.000Z" title="发表于 2023-10-24 14:42:44">2023-10-24</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2023-11-07T14:48:09.241Z" title="更新于 2023-11-07 22:48:09">2023-11-07</time></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">3.7k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>17分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="New Features of Java 21 - Sequenced Collections"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><p>序列集合是Java21的一个正式特性，该特性通过引入新的接口表示具有定义的相遇顺序的集合。每个这样的集合都有定义良好的第一个元素、第二个元素，依此类推，直到最后一个元素。它还提供了统一的api来访问它的第一个和最后一个元素，并以相反的顺序处理它的元素。</p>
+<p>1 为什么会有序列集合</p>
+<p>Java的集合框架缺少一种集合类型来表示具有定义的相遇顺序的元素序列，它还缺乏适用于这些集合的统一操作集。这些差距一再成为问题和抱怨的根源。</p>
+<p>例如，List和Deque都定义了相遇顺序，但它们的共同超类型是Collection，而Collection没有定义相遇顺序。类似地，Set不定义相遇顺序，HashSet等子类型也不定义相遇顺序，但SortedSet和LinkedHashSet等子类型定义了相遇顺序。因此，对相遇顺序的支持在整个类型中展开。</p>
+<p>一个相关的问题是视图集合经常被迫降级为较弱的语义。用Collections:: unmodiableleset包装LinkedHashSet产生一个Set，丢弃关于相遇顺序的信息。</p>
+<p>如果没有接口来定义它们，与遭遇战顺序相关的操作要么不一致，要么缺失。虽然许多实现都支持获取第一个或最后一个元素，但每个集合都定义了自己的方式，有些并不明显或完全缺失:</p>
+<p>First element</p>
+<p>Last element</p>
+<p>List</p>
+<p>list.get(0)</p>
+<p>list.get(list.size() - 1)</p>
+<p>Deque</p>
+<p>deque.getFirst()</p>
+<p>deque.getLast()</p>
+<p>SortedSet</p>
+<p>sortedSet.first()</p>
+<p>sortedSet.last()</p>
+<p>LinkedHashSet</p>
+<p>linkedHashSet.iterator().next()</p>
+<p>&#x2F;&#x2F; missing</p>
+<p>其中一些是不必要的麻烦，例如我们要获取List的最后一个元素。有些甚至不可能没有英雄:获得LinkedHashSet的最后一个元素的唯一方法是迭代整个集合。</p>
+<p>类似地，从第一个到最后迭代集合的元素是直接和一致的，但反向迭代就不一样了。所有这些集合都可以使用Iterator、增强的for循环、stream()或toArray()向前迭代。在每种情况下，反向迭代都是不同的。NavigableSet为反向迭代提供了descendingSet()视图:</p>
+<p>for (var e : navSet.descendingSet())<br>    process(e);<br>Deque通过反向迭代器实现了这一点:</p>
+<p>for (var it &#x3D; deque.descendingIterator(); it.hasNext();) {<br>    var e &#x3D; it.next();<br>    process(e);<br>}<br>List可以这样做，但使用ListIterator:</p>
+<p>for (var it &#x3D; list.listIterator(list.size()); it.hasPrevious();) {<br>    var e &#x3D; it.previous();<br>    process(e);<br>}<br>最后，LinkedHashSet不支持反向迭代。以相反的顺序处理LinkedHashSet元素的唯一实际方法是将其元素复制到另一个集合中。</p>
+<p>类似地，与使用循环处理元素相比，使用流处理集合的元素是一种强大而有效的替代方法，但是以相反的顺序获取流可能比较困难。在定义相遇顺序的各种集合中，唯一方便地支持这一点的是NavigableSet: </p>
+<p>navSet.descendingSet().stream()<br>其他方法要么需要将元素复制到另一个集合，要么需要从自定义的Spliterator创建一个流来反转迭代。</p>
+<p>这是一种不好的状况。具有定义的相遇顺序的集合的概念存在于集合框架中的多个位置，但没有单一类型表示它。因此，这些集合上的一些操作不一致或丢失，以相反的顺序处理元素从不方便到不可能。我们应该填补这些空白。</p>
+<p>正因为上面的一切原因，我们才为序列集合、序列集合和序列映射定义了新的接口，然后将它们改造成现有的集合类型层次结构。在这些接口中声明的所有新方法都有默认实现。</p>
+<ol start="2">
+<li>有序Collections</li>
+</ol>
+<p>有序集合是其元素具有已定义的相遇顺序的集合。(这里的“sequenced”一词是动词to sequence的过去分词，意思是“按特定顺序排列元素”。)一个有顺序的集合有第一个元素和最后一个元素，它们之间的元素有后继元素和前继元素。序列集合在任意一端都支持通用操作，并且支持从第一到最后和从最后到第一(即正向和反向)处理元素，让我们来看看序列集合的接口申明：</p>
+<p>public interface SequencedCollection<E> extends Collection<E> {<br>    &#x2F;**<br>     * Returns a reverse-ordered <a href="Collection.html#view">view</a> of this collection.<br>     * The encounter order of elements in the returned view is the inverse of the encounter<br>     * order of elements in this collection. The reverse ordering affects all order-sensitive<br>     * operations, including those on the view collections of the returned view. If the collection<br>     * implementation permits modifications to this view, the modifications “write through” to the<br>     * underlying collection. Changes to the underlying collection might or might not be visible<br>     * in this reversed view, depending upon the implementation.<br>     *<br>     * @return a reverse-ordered view of this collection<br>     <em>&#x2F;<br>    SequencedCollection<E> reversed();<br>​<br>    &#x2F;</em>*<br>     * Adds an element as the first element of this collection (optional operation).<br>     * After this operation completes normally, the given element will be a member of<br>     * this collection, and it will be the first element in encounter order.<br>     *<br>     * @implSpec<br>     * The implementation in this interface always throws {@code UnsupportedOperationException}.<br>     *<br>     * @param e the element to be added<br>     * @throws NullPointerException if the specified element is null and this<br>     *         collection does not permit null elements<br>     * @throws UnsupportedOperationException if this collection implementation<br>     *         does not support this operation<br>     <em>&#x2F;<br>    default void addFirst(E e) {<br>        throw new UnsupportedOperationException();<br>    }<br>​<br>    &#x2F;</em>*<br>     * Adds an element as the last element of this collection (optional operation).<br>     * After this operation completes normally, the given element will be a member of<br>     * this collection, and it will be the last element in encounter order.<br>     *<br>     * @implSpec<br>     * The implementation in this interface always throws {@code UnsupportedOperationException}.<br>     *<br>     * @param e the element to be added.<br>     * @throws NullPointerException if the specified element is null and this<br>     *         collection does not permit null elements<br>     * @throws UnsupportedOperationException if this collection implementation<br>     *         does not support this operation<br>     <em>&#x2F;<br>    default void addLast(E e) {<br>        throw new UnsupportedOperationException();<br>    }<br>​<br>    &#x2F;</em>*<br>     * Gets the first element of this collection.<br>     *<br>     * @implSpec<br>     * The implementation in this interface obtains an iterator of this collection, and<br>     * then it obtains an element by calling the iterator’s {@code next} method. Any<br>     * {@code NoSuchElementException} thrown is propagated. Otherwise, it returns<br>     * the element.<br>     *<br>     * @return the retrieved element<br>     * @throws NoSuchElementException if this collection is empty<br>     <em>&#x2F;<br>    default E getFirst() {<br>        return this.iterator().next();<br>    }<br>​<br>    &#x2F;</em>*<br>     * Gets the last element of this collection.<br>     *<br>     * @implSpec<br>     * The implementation in this interface obtains an iterator of the reversed view<br>     * of this collection, and then it obtains an element by calling the iterator’s<br>     * {@code next} method. Any {@code NoSuchElementException} thrown is propagated.<br>     * Otherwise, it returns the element.<br>     *<br>     * @return the retrieved element<br>     * @throws NoSuchElementException if this collection is empty<br>     <em>&#x2F;<br>    default E getLast() {<br>        return this.reversed().iterator().next();<br>    }<br>​<br>    &#x2F;</em>*<br>     * Removes and returns the first element of this collection (optional operation).<br>     *<br>     * @implSpec<br>     * The implementation in this interface obtains an iterator of this collection, and then<br>     * it obtains an element by calling the iterator’s {@code next} method. Any<br>     * {@code NoSuchElementException} thrown is propagated. It then calls the iterator’s<br>     * {@code remove} method. Any {@code UnsupportedOperationException} thrown is propagated.<br>     * Then, it returns the element.<br>     *<br>     * @return the removed element<br>     * @throws NoSuchElementException if this collection is empty<br>     * @throws UnsupportedOperationException if this collection implementation<br>     *         does not support this operation<br>     <em>&#x2F;<br>    default E removeFirst() {<br>        var it &#x3D; this.iterator();<br>        E e &#x3D; it.next();<br>        it.remove();<br>        return e;<br>    }<br>​<br>    &#x2F;</em>*<br>     * Removes and returns the last element of this collection (optional operation).<br>     *<br>     * @implSpec<br>     * The implementation in this interface obtains an iterator of the reversed view of this<br>     * collection, and then it obtains an element by calling the iterator’s {@code next} method.<br>     * Any {@code NoSuchElementException} thrown is propagated. It then calls the iterator’s<br>     * {@code remove} method. Any {@code UnsupportedOperationException} thrown is propagated.<br>     * Then, it returns the element.<br>     *<br>     * @return the removed element<br>     * @throws NoSuchElementException if this collection is empty<br>     * @throws UnsupportedOperationException if this collection implementation<br>     *         does not support this operation<br>     *&#x2F;<br>    default E removeLast() {<br>        var it &#x3D; this.reversed().iterator();<br>        E e &#x3D; it.next();<br>        it.remove();<br>        return e;<br>    }<br>}</p>
+<p>新的reversed()方法提供了原始集合的反向排序视图。对原始集合的任何修改都可以在视图中看到。如果允许，对视图的修改将写到原始集合。</p>
+<p>逆序视图允许所有不同的顺序类型在两个方向上处理元素，使用所有常用的迭代机制:增强的for循环、显式iterator()循环、forEach()、stream()、parallelStream()和toArray()。</p>
+<p>例如，以前从LinkedHashSet中获得反向排序流是相当困难的，现在它很简单。</p>
+<p>linkedHashSet.reversed().stream()<br>(reversed()方法本质上是一个重命名的NavigableSet::descendingSet，提升为SequencedCollection。)</p>
+<p>SequencedCollection的以下方法是从Deque提升而来的。它们支持在两端添加、获取和删除元素:</p>
+<p>void addFirst(E)<br>void addLast(E)<br>E getFirst()<br>E getLast()<br>E removeFirst()<br>E removeLast()<br>add*(E)和remove*()方法是可选的，主要是为了支持不可修改集合的情况。如果集合为空，get*()和remove*()方法会抛出NoSuchElementException。</p>
+<p>在SequencedCollection中没有equals()和hashCode()的定义，因为它的子接口有冲突的定义。</p>
+<ol start="3">
+<li>有序Sets</li>
+</ol>
+<p>Sequenced Set是一个不包含重复元素的SequencedCollection。</p>
+<p>&#x2F;**</p>
+<ul>
+<li>A collection that is both a {@link SequencedCollection} and a {@link Set}. As such,</li>
+<li>it can be thought of either as a {@code Set} that also has a well-defined</li>
+<li><a href="SequencedCollection.html#encounter">encounter order</a>, or as a</li>
+<li>{@code SequencedCollection} that also has unique elements.</li>
+<li><p></li>
+<li>This interface has the same requirements on the {@code equals} and {@code hashCode}</li>
+<li>methods as defined by {@link Set#equals Set.equals} and {@link Set#hashCode Set.hashCode}.</li>
+<li>Thus, a {@code Set} and a {@code SequencedSet} will compare equals if and only</li>
+<li>if they have equal elements, irrespective of ordering.</li>
+<li><p></li>
+<li>{@code SequencedSet} defines the {@link #reversed} method, which provides a</li>
+<li>reverse-ordered <a href="Collection.html#view">view</a> of this set. The only difference</li>
+<li>from the {@link SequencedCollection#reversed SequencedCollection.reversed} method is</li>
+<li>that the return type of {@code SequencedSet.reversed} is {@code SequencedSet}.</li>
+<li><p></li>
+<li>This class is a member of the</li>
+<li><a href="{@docRoot}/java.base/java/util/package-summary.html#CollectionsFramework"></li>
+<li>Java Collections Framework</a>.</li>
+<li></li>
+<li>@param <E> the type of elements in this sequenced set</li>
+<li>@since 21<br> <em>&#x2F;<br>public interface SequencedSet<E> extends SequencedCollection<E>, Set<E> {<br> &#x2F;</em>*<ul>
+<li>{@inheritDoc}</li>
+<li></li>
+<li>@return a reverse-ordered view of this collection, as a {@code SequencedSet}<br>  *&#x2F;<br> SequencedSet<E> reversed();<br>}</li>
+</ul>
+</li>
+</ul>
+<p>SortedSet之类的集合通过相对比较来定位元素，它们不能支持显式定位操作，例如在SequencedCollection超接口中声明的addFirst(E)和addLast(E)方法。因此，这些方法可以抛出UnsupportedOperationException。</p>
+<p>SequencedSet的addFirst(E)和addLast(E)方法对于LinkedHashSet等集合具有特殊情况语义:如果元素已经存在于集合中，则将其移动到适当的位置。这弥补了LinkedHashSet中一个长期存在的缺陷，即无法重新定位元素。</p>
+<ol start="4">
+<li>有序Maps</li>
+</ol>
+<p>Sequenced Map有序映射是其条目具有定义的相遇顺序的map。</p>
+<p>public interface SequencedMap&lt;K, V&gt; extends Map&lt;K, V&gt; {<br>    &#x2F;**<br>     * Returns a reverse-ordered <a href="Collection.html#view">view</a> of this map.<br>     * The encounter order of mappings in the returned view is the inverse of the encounter<br>     * order of mappings in this map. The reverse ordering affects all order-sensitive operations,<br>     * including those on the view collections of the returned view. If the implementation permits<br>     * modifications to this view, the modifications “write through” to the underlying map.<br>     * Changes to the underlying map might or might not be visible in this reversed view,<br>     * depending upon the implementation.<br>     *<br>     * @return a reverse-ordered view of this map<br>     <em>&#x2F;<br>    SequencedMap&lt;K, V&gt; reversed();<br>​<br>    &#x2F;</em>*<br>     * Returns the first key-value mapping in this map,<br>     * or {@code null} if the map is empty.<br>     *<br>     * @implSpec<br>     * The implementation in this interface obtains the iterator of this map’s entrySet.<br>     * If the iterator has an element, it returns an unmodifiable copy of that element.<br>     * Otherwise, it returns null.<br>     *<br>     * @return the first key-value mapping,<br>     *         or {@code null} if this map is empty<br>     <em>&#x2F;<br>    default Map.Entry&lt;K,V&gt; firstEntry() {<br>        var it &#x3D; entrySet().iterator();<br>        return it.hasNext() ? new NullableKeyValueHolder&lt;&gt;(it.next()) : null;<br>    }<br>​<br>    &#x2F;</em>*<br>     * Returns the last key-value mapping in this map,<br>     * or {@code null} if the map is empty.<br>     *<br>     * @implSpec<br>     * The implementation in this interface obtains the iterator of the entrySet of this map’s<br>     * reversed view. If the iterator has an element, it returns an unmodifiable copy of<br>     * that element. Otherwise, it returns null.<br>     *<br>     * @return the last key-value mapping,<br>     *         or {@code null} if this map is empty<br>     <em>&#x2F;<br>    default Map.Entry&lt;K,V&gt; lastEntry() {<br>        var it &#x3D; reversed().entrySet().iterator();<br>        return it.hasNext() ? new NullableKeyValueHolder&lt;&gt;(it.next()) : null;<br>    }<br>​<br>    &#x2F;</em>*<br>     * Removes and returns the first key-value mapping in this map,<br>     * or {@code null} if the map is empty (optional operation).<br>     *<br>     * @implSpec<br>     * The implementation in this interface obtains the iterator of this map’s entrySet.<br>     * If the iterator has an element, it calls {@code remove} on the iterator and<br>     * then returns an unmodifiable copy of that element. Otherwise, it returns null.<br>     *<br>     * @return the removed first entry of this map,<br>     *         or {@code null} if this map is empty<br>     * @throws UnsupportedOperationException if this collection implementation does not<br>     *         support this operation<br>     <em>&#x2F;<br>    default Map.Entry&lt;K,V&gt; pollFirstEntry() {<br>        var it &#x3D; entrySet().iterator();<br>        if (it.hasNext()) {<br>            var entry &#x3D; new NullableKeyValueHolder&lt;&gt;(it.next());<br>            it.remove();<br>            return entry;<br>        } else {<br>            return null;<br>        }<br>    }<br>​<br>    &#x2F;</em>*<br>     * Removes and returns the last key-value mapping in this map,<br>     * or {@code null} if the map is empty (optional operation).<br>     *<br>     * @implSpec<br>     * The implementation in this interface obtains the iterator of the entrySet of this map’s<br>     * reversed view. If the iterator has an element, it calls {@code remove} on the iterator<br>     * and then returns an unmodifiable copy of that element. Otherwise, it returns null.<br>     *<br>     * @return the removed last entry of this map,<br>     *         or {@code null} if this map is empty<br>     * @throws UnsupportedOperationException if this collection implementation does not<br>     *         support this operation<br>     <em>&#x2F;<br>    default Map.Entry&lt;K,V&gt; pollLastEntry() {<br>        var it &#x3D; reversed().entrySet().iterator();<br>        if (it.hasNext()) {<br>            var entry &#x3D; new NullableKeyValueHolder&lt;&gt;(it.next());<br>            it.remove();<br>            return entry;<br>        } else {<br>            return null;<br>        }<br>    }<br>​<br>    &#x2F;</em>*<br>     * Inserts the given mapping into the map if it is not already present, or replaces the<br>     * value of a mapping if it is already present (optional operation). After this operation<br>     * completes normally, the given mapping will be present in this map, and it will be the<br>     * first mapping in this map’s encounter order.<br>     *<br>     * @implSpec The implementation in this interface always throws<br>     * {@code UnsupportedOperationException}.<br>     *<br>     * @param k the key<br>     * @param v the value<br>     * @return the value previously associated with k, or null if none<br>     * @throws UnsupportedOperationException if this collection implementation does not<br>     *         support this operation<br>     <em>&#x2F;<br>    default V putFirst(K k, V v) {<br>        throw new UnsupportedOperationException();<br>    }<br>​<br>    &#x2F;</em>*<br>     * Inserts the given mapping into the map if it is not already present, or replaces the<br>     * value of a mapping if it is already present (optional operation). After this operation<br>     * completes normally, the given mapping will be present in this map, and it will be the<br>     * last mapping in this map’s encounter order.<br>     *<br>     * @implSpec The implementation in this interface always throws<br>     * {@code UnsupportedOperationException}.<br>     *<br>     * @param k the key<br>     * @param v the value<br>     * @return the value previously associated with k, or null if none<br>     * @throws UnsupportedOperationException if this collection implementation does not<br>     *         support this operation<br>     <em>&#x2F;<br>    default V putLast(K k, V v) {<br>        throw new UnsupportedOperationException();<br>    }<br>​<br>    &#x2F;</em>*<br>     * Returns a {@code SequencedSet} view of this map’s {@link #keySet keySet}.<br>     *<br>     * @implSpec<br>     * The implementation in this interface returns a {@code SequencedSet} instance<br>     * that behaves as follows. Its {@link SequencedSet#add add} and {@link<br>     * SequencedSet#addAll addAll} methods throw {@link UnsupportedOperationException}.<br>     * Its {@link SequencedSet#reversed reversed} method returns the {@link<br>     * #sequencedKeySet sequencedKeySet} view of the {@link #reversed reversed} view of<br>     * this map. Each of its other methods calls the corresponding method of the {@link<br>     * #keySet keySet} view of this map.<br>     *<br>     * @return a {@code SequencedSet} view of this map’s {@code keySet}<br>     <em>&#x2F;<br>    default SequencedSet<K> sequencedKeySet() {<br>        class SeqKeySet extends AbstractMap.ViewCollection<K> implements SequencedSet<K> {<br>            Collection<K> view() {<br>                return SequencedMap.this.keySet();<br>            }<br>            public SequencedSet<K> reversed() {<br>                return SequencedMap.this.reversed().sequencedKeySet();<br>            }<br>            public boolean equals(Object other) {<br>                return view().equals(other);<br>            }<br>            public int hashCode() {<br>                return view().hashCode();<br>            }<br>        }<br>        return new SeqKeySet();<br>    }<br>​<br>    &#x2F;</em>*<br>     * Returns a {@code SequencedCollection} view of this map’s {@link #values values} collection.<br>     *<br>     * @implSpec<br>     * The implementation in this interface returns a {@code SequencedCollection} instance<br>     * that behaves as follows. Its {@link SequencedCollection#add add} and {@link<br>     * SequencedCollection#addAll addAll} methods throw {@link UnsupportedOperationException}.<br>     * Its {@link SequencedCollection#reversed reversed} method returns the {@link<br>     * #sequencedValues sequencedValues} view of the {@link #reversed reversed} view of<br>     * this map. Its {@link Object#equals equals} and {@link Object#hashCode hashCode} methods<br>     * are inherited from {@link Object}. Each of its other methods calls the corresponding<br>     * method of the {@link #values values} view of this map.<br>     *<br>     * @return a {@code SequencedCollection} view of this map’s {@code values} collection<br>     <em>&#x2F;<br>    default SequencedCollection<V> sequencedValues() {<br>        class SeqValues extends AbstractMap.ViewCollection<V> implements SequencedCollection<V> {<br>            Collection<V> view() {<br>                return SequencedMap.this.values();<br>            }<br>            public SequencedCollection<V> reversed() {<br>                return SequencedMap.this.reversed().sequencedValues();<br>            }<br>        }<br>        return new SeqValues();<br>    }<br>​<br>    &#x2F;</em>*<br>     * Returns a {@code SequencedSet} view of this map’s {@link #entrySet entrySet}.<br>     *<br>     * @implSpec<br>     * The implementation in this interface returns a {@code SequencedSet} instance<br>     * that behaves as follows. Its {@link SequencedSet#add add} and {@link<br>     * SequencedSet#addAll addAll} methods throw {@link UnsupportedOperationException}.<br>     * Its {@link SequencedSet#reversed reversed} method returns the {@link<br>     * #sequencedEntrySet sequencedEntrySet} view of the {@link #reversed reversed} view of<br>     * this map. Each of its other methods calls the corresponding method of the {@link<br>     * #entrySet entrySet} view of this map.<br>     *<br>     * @return a {@code SequencedSet} view of this map’s {@code entrySet}<br>     *&#x2F;<br>    default SequencedSet&lt;Map.Entry&lt;K, V&gt;&gt; sequencedEntrySet() {<br>        class SeqEntrySet extends AbstractMap.ViewCollection&lt;Map.Entry&lt;K, V&gt;&gt;<br>                implements SequencedSet&lt;Map.Entry&lt;K, V&gt;&gt; {<br>            Collection&lt;Map.Entry&lt;K, V&gt;&gt; view() {<br>                return SequencedMap.this.entrySet();<br>            }<br>            public SequencedSet&lt;Map.Entry&lt;K, V&gt;&gt; reversed() {<br>                return SequencedMap.this.reversed().sequencedEntrySet();<br>            }<br>            public boolean equals(Object other) {<br>                return view().equals(other);<br>            }<br>            public int hashCode() {<br>                return view().hashCode();<br>            }<br>        }<br>        return new SeqEntrySet();<br>    }<br>}</p>
+<p>在编写代码时，插值不仅比串联更方便，而且在阅读代码时也更清晰。对于较复杂的字符串，其清晰度尤其突出。例如，在JavaScript中:</p>
+<p>4 总结</p>
+<p>通过以上例子，我们可以实现自定义字符串模板处理器，不仅如此我们还可以实现针对返回指定类型的模板处理器，由此可见内嵌模板表达式可以很方便地实现插值，并且插值之前可以对值进行规则检验，不过当前的字符串模板目前只是一个预览特性，在未来的Java版本是否正式公开此特性我们拭目以待。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://itratel.github.io">Ratel</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://itratel.github.io/article/39053.html">https://itratel.github.io/article/39053.html</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://itratel.github.io" target="_blank">Ratel's Blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"></div><div class="post_share"><div class="social-share" data-image="/img/cover/go-env.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>打赏</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/wechat.jpg" target="_blank"><img class="post-qr-code-img" src="/img/wechat.jpg" alt="wechat"/></a><div class="post-qr-code-desc">wechat</div></li><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/article/1.html" title="flinkCDC导入HUDI"><img class="cover" src="/img/cover/go_paypal_case_study.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">flinkCDC导入HUDI</div></div></a></div><div class="next-post pull-right"><a href="/article/9351.html" title="Redis面试重点"><img class="cover" src="/img/cover/go-env-start.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">Redis面试重点</div></div></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/img/tantaijin.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">Ratel</div><div class="author-info__description">专注于后端和数据技术。</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">16</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">29</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">11</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/itratel"><i class="iconfont icon-youxishoubing"></i><span>关注我</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/itratel" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:whd.java@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content"><p align="center">微信号：RatelWu</p> <p align="center">QQ号：479661452</p></div></div><div class="sticky_layout"><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/article/1.html" title="flinkCDC导入HUDI"><img src="/img/cover/go_paypal_case_study.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="flinkCDC导入HUDI"/></a><div class="content"><a class="title" href="/article/1.html" title="flinkCDC导入HUDI">flinkCDC导入HUDI</a><time datetime="2023-11-05T14:53:22.000Z" title="发表于 2023-11-05 22:53:22">2023-11-05</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/article/39053.html" title="New Features of Java 21 - Sequenced Collections"><img src="/img/cover/go-env.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="New Features of Java 21 - Sequenced Collections"/></a><div class="content"><a class="title" href="/article/39053.html" title="New Features of Java 21 - Sequenced Collections">New Features of Java 21 - Sequenced Collections</a><time datetime="2023-10-24T06:42:44.000Z" title="发表于 2023-10-24 14:42:44">2023-10-24</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/article/9351.html" title="Redis面试重点"><img src="/img/cover/go-env-start.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Redis面试重点"/></a><div class="content"><a class="title" href="/article/9351.html" title="Redis面试重点">Redis面试重点</a><time datetime="2019-05-11T02:44:12.000Z" title="发表于 2019-05-11 10:44:12">2019-05-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/article/52980.html" title="mysql索引使用和优化"><img src="/img/cover/go-env.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="mysql索引使用和优化"/></a><div class="content"><a class="title" href="/article/52980.html" title="mysql索引使用和优化">mysql索引使用和优化</a><time datetime="2019-05-11T02:06:18.000Z" title="发表于 2019-05-11 10:06:18">2019-05-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/article/23760.html" title="Tomcat性能优化"><img src="/img/cover/go_index1.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Tomcat性能优化"/></a><div class="content"><a class="title" href="/article/23760.html" title="Tomcat性能优化">Tomcat性能优化</a><time datetime="2019-05-10T16:33:46.000Z" title="发表于 2019-05-11 00:33:46">2019-05-11</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url('/img/cover/go-env.png')"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2023 By Ratel</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据库加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div><!-- hexo injector body_end start --><script data-pjax>
+  function butterfly_clock_anzhiyu_injector_config(){
+    var parent_div_git = document.getElementsByClassName('sticky_layout')[0];
+    var item_html = '<div class="card-widget card-clock"><div class="card-glass"><div class="card-background"><div class="card-content"><div id="hexo_electric_clock"><img class="entered loading" id="card-clock-loading" src="https://cdn.cbd.int/hexo-butterfly-clock-anzhiyu/lib/loading.gif" style="height: 120px; width: 100%;" data-ll-status="loading"/></div></div></div></div></div>';
+    console.log('已挂载butterfly_clock_anzhiyu')
+    if(parent_div_git) {
+      parent_div_git.insertAdjacentHTML("afterbegin",item_html)
+    }
+  }
+  var elist = 'null'.split(',');
+  var cpage = location.pathname;
+  var epage = 'all';
+  var qweather_key = 'b16a1fa0e63c46a4b8f28abfb06ae3fe';
+  var gaud_map_key = 'e2b04289e870b005374ee030148d64fd&s=rsv3';
+  var baidu_ak_key = 'undefined';
+  var flag = 0;
+  var clock_rectangle = '112.982279,28.19409';
+  var clock_default_rectangle_enable = 'false';
+
+  for (var i=0;i<elist.length;i++){
+    if (cpage.includes(elist[i])){
+      flag++;
+    }
+  }
+
+  if ((epage ==='all')&&(flag == 0)){
+    butterfly_clock_anzhiyu_injector_config();
+  }
+  else if (epage === cpage){
+    butterfly_clock_anzhiyu_injector_config();
+  }
+  </script><script src="https://widget.qweather.net/simple/static/js/he-simple-common.js?v=2.0"></script><script data-pjax src="https://cdn.cbd.int/hexo-butterfly-clock-anzhiyu/lib/clock.min.js"></script><!-- hexo injector body_end end --></body></html>

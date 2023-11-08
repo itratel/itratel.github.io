@@ -1,0 +1,208 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>并发编程之ConcurrentHashMap原理分析 | Ratel's Blog</title><meta name="author" content="Ratel"><meta name="copyright" content="Ratel"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="&amp;emsp;&amp;emsp;在并发编程实践中，ConcurrentHashMap是一个经常被使用的数据结构，相比于Hashtable和Collections.synchronizedMap()，前者在线程安全的基础上提供了更好的写并发能力，但同时降低了对读一致性的要求。ConcurrentHashMap的设计与实现非常精巧，大量的利用了volatile，final，CAS和锁分段的技术来减少锁竞争对于">
+<meta property="og:type" content="article">
+<meta property="og:title" content="并发编程之ConcurrentHashMap原理分析">
+<meta property="og:url" content="https://itratel.github.io/article/40616.html">
+<meta property="og:site_name" content="Ratel&#39;s Blog">
+<meta property="og:description" content="&amp;emsp;&amp;emsp;在并发编程实践中，ConcurrentHashMap是一个经常被使用的数据结构，相比于Hashtable和Collections.synchronizedMap()，前者在线程安全的基础上提供了更好的写并发能力，但同时降低了对读一致性的要求。ConcurrentHashMap的设计与实现非常精巧，大量的利用了volatile，final，CAS和锁分段的技术来减少锁竞争对于">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://itratel.github.io/img/cover/go_paypal_case_study.png">
+<meta property="article:published_time" content="2018-08-01T13:03:20.000Z">
+<meta property="article:modified_time" content="2023-11-07T14:48:09.252Z">
+<meta property="article:author" content="Ratel">
+<meta property="article:tag" content="java">
+<meta property="article:tag" content="并发编程">
+<meta property="article:tag" content="数据结构">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://itratel.github.io/img/cover/go_paypal_case_study.png"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://itratel.github.io/article/40616.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"找不到您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: {"limitCount":20,"languages":{"author":"作者: Ratel","link":"链接: ","source":"来源: Ratel's Blog","info":"著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。"}},
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: true,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '并发编程之ConcurrentHashMap原理分析',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2023-11-07 22:48:09'
+}</script><script>(win=>{
+      win.saveToLocal = {
+        set: (key, value, ttl) => {
+          if (ttl === 0) return
+          const now = Date.now()
+          const expiry = now + ttl * 86400000
+          const item = {
+            value,
+            expiry
+          }
+          localStorage.setItem(key, JSON.stringify(item))
+        },
+      
+        get: key => {
+          const itemStr = localStorage.getItem(key)
+      
+          if (!itemStr) {
+            return undefined
+          }
+          const item = JSON.parse(itemStr)
+          const now = Date.now()
+      
+          if (now > item.expiry) {
+            localStorage.removeItem(key)
+            return undefined
+          }
+          return item.value
+        }
+      }
+    
+      win.getScript = (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        script.onerror = reject
+        script.onload = script.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          script.onload = script.onreadystatechange = null
+          resolve()
+        }
+
+        Object.keys(attr).forEach(key => {
+          script.setAttribute(key, attr[key])
+        })
+
+        document.head.appendChild(script)
+      })
+    
+      win.getCSS = (url, id = false) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onerror = reject
+        link.onload = link.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          link.onload = link.onreadystatechange = null
+          resolve()
+        }
+        document.head.appendChild(link)
+      })
+    
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+      const detectApple = () => {
+        if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+          document.documentElement.classList.add('apple')
+        }
+      }
+      detectApple()
+    })(window)</script><!-- hexo injector head_end start --><link rel="stylesheet" href="https://cdn.cbd.int/hexo-butterfly-clock-anzhiyu/lib/clock.min.css" /><!-- hexo injector head_end end --><meta name="generator" content="Hexo 6.3.0"></head><body><div id="web_bg"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/img/tantaijin.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">16</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">29</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">11</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友情链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('/img/cover/go_paypal_case_study.png')"><nav id="nav"><span id="blog-info"><a href="/" title="Ratel's Blog"><span class="site-name">Ratel's Blog</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友情链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">并发编程之ConcurrentHashMap原理分析</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2018-08-01T13:03:20.000Z" title="发表于 2018-08-01 21:03:20">2018-08-01</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2023-11-07T14:48:09.252Z" title="更新于 2023-11-07 22:48:09">2023-11-07</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/">并发编程</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">2.5k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>8分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="并发编程之ConcurrentHashMap原理分析"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><p>&emsp;&emsp;在并发编程实践中，ConcurrentHashMap是一个经常被使用的数据结构，相比于Hashtable和Collections.synchronizedMap()，前者在线程安全的基础上提供了更好的写并发能力，但同时降低了对读一致性的要求。ConcurrentHashMap的设计与实现非常精巧，大量的利用了volatile，final，CAS和锁分段的技术来减少锁竞争对于性能的影响，接下来我将分别阐述ConcurrentHashMap在JDK6&#x2F;7&#x2F;8分别是如何实现的。</p>
+<span id="more"></span>
+
+<h2 id="1-JDK1-6和1-7中的实现"><a href="#1-JDK1-6和1-7中的实现" class="headerlink" title="1. JDK1.6和1.7中的实现"></a>1. JDK1.6和1.7中的实现</h2><h3 id="1-1-设计思路"><a href="#1-1-设计思路" class="headerlink" title="1.1 设计思路"></a>1.1 设计思路</h3><p>在jdk1.6和1.7中采用了锁分段的技术实现，只有在同一个分段内才存在竞态关系，不同的分段锁之间没有锁竞争，相比于HashTable对整个map加锁的设计，分段锁大大的提高了高并发环境下的处理能力，正因为不是对整个map加锁，导致一些需要扫描整个Map的方法（如size(), containsValue()）需要使用特殊的实现，另外一些方法（如clear()）甚至放弃了对一致性的要求（ConcurrentHashMap是弱一致性的；</p>
+<p>ConcurrentHashMap中的分段锁称为Segment，它即类似于HashMap（JDK7与JDK8中HashMap的实现）的结构，即内部拥有一个Entry数组，数组中的每个元素又是一个链表；同时又是一个ReentrantLock（Segment继承了ReentrantLock）。ConcurrentHashMap中的HashEntry相对于HashMap中的Entry有一定的差异性：HashEntry中的value以及next都被volatile修饰，这样在多线程读写过程中能够保持它们的可见性，代码如下：</p>
+<pre><code>static final class HashEntry&lt;K,V&gt; &#123;
+    final int hash;
+    final K key;
+    volatile V value;
+    volatile HashEntry&lt;K,V&gt; next;
+</code></pre>
+<h3 id="1-2-并发度（Concurrency-Level）"><a href="#1-2-并发度（Concurrency-Level）" class="headerlink" title="1.2 并发度（Concurrency Level）"></a>1.2 并发度（Concurrency Level）</h3><p>并发度可以理解为程序运行时能够同时更新ConccurentHashMap且不产生锁竞争的最大线程数，实际上就是ConcurrentHashMap中的分段锁个数，即Segment[]的数组长度。ConcurrentHashMap默认的并发度为16，但用户也可以在构造函数中设置并发度。当用户设置并发度时，ConcurrentHashMap会使用大于等于该值的最小2幂指数作为实际并发度（假如用户设置并发度为17，实际并发度则为32）。运行时通过将key的高n位（n &#x3D; 32 – segmentShift）和并发度减1（segmentMask）做位与运算定位到所在的Segment。segmentShift与segmentMask都是在构造过程中根据concurrency level被相应的计算出来。</p>
+<p>如果并发度设置的过小，会带来严重的锁竞争问题；如果并发度设置的过大，原本位于同一个Segment内的访问会扩散到不同的Segment中，CPU cache命中率会下降，从而引起程序性能下降。（文档的说法是根据你并发的线程数量决定，太多会导性能降低）。</p>
+<h3 id="1-3-创建分段锁"><a href="#1-3-创建分段锁" class="headerlink" title="1.3 创建分段锁"></a>1.3 创建分段锁</h3><p>和JDK6不同，JDK7中除了第一个Segment之外，剩余的Segments采用的是延迟初始化的机制：每次put之前都需要检查key对应的Segment是否为null，如果是则调用ensureSegment()以确保对应的Segment被创建。</p>
+<p>ensureSegment可能在并发环境下被调用，但与想象中不同，ensureSegment并未使用锁来控制竞争，而是使用了Unsafe对象的getObjectVolatile()提供的原子读语义结合CAS来确保Segment创建的原子性。代码段如下：<br>    if ((seg &#x3D; (Segment&lt;K,V&gt;)UNSAFE.getObjectVolatile(ss, u))<br>                &#x3D;&#x3D; null) { &#x2F;&#x2F; recheck<br>                Segment&lt;K,V&gt; s &#x3D; new Segment&lt;K,V&gt;(lf, threshold, tab);<br>                while ((seg &#x3D; (Segment&lt;K,V&gt;)UNSAFE.getObjectVolatile(ss, u))<br>                       &#x3D;&#x3D; null) {<br>                    if (UNSAFE.compareAndSwapObject(ss, u, null, seg &#x3D; s))<br>                        break;<br>                }<br>}</p>
+<h3 id="1-4-put-putIfAbsent-putAll"><a href="#1-4-put-putIfAbsent-putAll" class="headerlink" title="1.4 put&#x2F;putIfAbsent&#x2F;putAll"></a>1.4 put&#x2F;putIfAbsent&#x2F;putAll</h3><p>和JDK6一样，ConcurrentHashMap的put方法被代理到了对应的Segment（定位Segment的原理之前已经描述过）中。与JDK6不同的是，JDK7版本的ConcurrentHashMap在获得Segment锁的过程中，做了一定的优化 - 在真正申请锁之前，put方法会通过tryLock()方法尝试获得锁，在尝试获得锁的过程中会对对应hashcode的链表进行遍历，如果遍历完毕仍然找不到与key相同的HashEntry节点，则为后续的put操作提前创建一个HashEntry。当tryLock一定次数后仍无法获得锁，则通过lock申请锁。</p>
+<p>需要注意的是，由于在并发环境下，其他线程的put，rehash或者remove操作可能会导致链表头结点的变化，因此在过程中需要进行检查，如果头结点发生变化则重新对表进行遍历。而如果其他线程引起了链表中的某个节点被删除，即使该变化因为是非原子写操作（删除节点后链接后续节点调用的是Unsafe.putOrderedObject()，该方法不提供原子写语义）可能导致当前线程无法观察到，但因为不影响遍历的正确性所以忽略不计。</p>
+<p>之所以在获取锁的过程中对整个链表进行遍历，主要目的是希望遍历的链表被CPU cache所缓存，为后续实际put过程中的链表遍历操作提升性能。</p>
+<p>在获得锁之后，Segment对链表进行遍历，如果某个HashEntry节点具有相同的key，则更新该HashEntry的value值，否则新建一个HashEntry节点，将它设置为链表的新head节点并将原头节点设为新head的下一个节点。新建过程中如果节点总数（含新建的HashEntry）超过threshold，则调用rehash()方法对Segment进行扩容，最后将新建HashEntry写入到数组中。</p>
+<p>put方法中，链接新节点的下一个节点（HashEntry.setNext()）以及将链表写入到数组中（setEntryAt()）都是通过Unsafe的putOrderedObject()方法来实现，这里并未使用具有原子写语义的putObjectVolatile()的原因是：JMM会保证获得锁到释放锁之间所有对象的状态更新都会在锁被释放之后更新到主存，从而保证这些变更对其他线程是可见的。</p>
+<h3 id="1-5-rehash"><a href="#1-5-rehash" class="headerlink" title="1.5 rehash"></a>1.5 rehash</h3><p>相对于HashMap的resize，ConcurrentHashMap的rehash原理类似，但是Doug Lea为rehash做了一定的优化，避免让所有的节点都进行复制操作：由于扩容是基于2的幂指来操作，假设扩容前某HashEntry对应到Segment中数组的index为i，数组的容量为capacity，那么扩容后该HashEntry对应到新数组中的index只可能为i或者i+capacity，因此大多数HashEntry节点在扩容前后index可以保持不变。基于此，rehash方法中会定位第一个后续所有节点在扩容后index都保持不变的节点，然后将这个节点之前的所有节点重排即可。这部分代码如下：<br>    private void rehash(HashEntry&lt;K,V&gt; node) {<br>           HashEntry&lt;K,V&gt;[] oldTable &#x3D; table;<br>           int oldCapacity &#x3D; oldTable.length;<br>           int newCapacity &#x3D; oldCapacity &lt;&lt; 1;<br>           threshold &#x3D; (int)(newCapacity * loadFactor);<br>           HashEntry&lt;K,V&gt;[] newTable &#x3D;<br>               (HashEntry&lt;K,V&gt;[]) new HashEntry[newCapacity];<br>           int sizeMask &#x3D; newCapacity - 1;<br>           for (int i &#x3D; 0; i &lt; oldCapacity ; i++) {<br>               HashEntry&lt;K,V&gt; e &#x3D; oldTable[i];<br>               if (e !&#x3D; null) {<br>                   HashEntry&lt;K,V&gt; next &#x3D; e.next;<br>                   int idx &#x3D; e.hash &amp; sizeMask;<br>                   if (next &#x3D;&#x3D; null)   &#x2F;&#x2F;  Single node on list<br>                       newTable[idx] &#x3D; e;<br>                   else { &#x2F;&#x2F; Reuse consecutive sequence at same slot<br>                       HashEntry&lt;K,V&gt; lastRun &#x3D; e;<br>                       int lastIdx &#x3D; idx;<br>                       for (HashEntry&lt;K,V&gt; last &#x3D; next;<br>                            last !&#x3D; null;<br>                            last &#x3D; last.next) {<br>                           int k &#x3D; last.hash &amp; sizeMask;<br>                           if (k !&#x3D; lastIdx) {<br>                               lastIdx &#x3D; k;<br>                               lastRun &#x3D; last;<br>                           }<br>                       }<br>                       newTable[lastIdx] &#x3D; lastRun;<br>                       &#x2F;&#x2F; Clone remaining nodes<br>                       for (HashEntry&lt;K,V&gt; p &#x3D; e; p !&#x3D; lastRun; p &#x3D; p.next) {<br>                           V v &#x3D; p.value;<br>                           int h &#x3D; p.hash;<br>                           int k &#x3D; h &amp; sizeMask;<br>                           HashEntry&lt;K,V&gt; n &#x3D; newTable[k];<br>                           newTable[k] &#x3D; new HashEntry&lt;K,V&gt;(h, p.key, v, n);<br>                       }<br>                   }<br>               }<br>           }<br>           int nodeIndex &#x3D; node.hash &amp; sizeMask; &#x2F;&#x2F; add the new node<br>           node.setNext(newTable[nodeIndex]);<br>           newTable[nodeIndex] &#x3D; node;<br>           table &#x3D; newTable;<br>       }</p>
+<h3 id="1-6-remove"><a href="#1-6-remove" class="headerlink" title="1.6 remove"></a>1.6 remove</h3><p>和put类似，remove在真正获得锁之前，也会对链表进行遍历以提高缓存命中率。</p>
+<h3 id="1-7-get与containsKey"><a href="#1-7-get与containsKey" class="headerlink" title="1.7 get与containsKey"></a>1.7 get与containsKey</h3><p>get与containsKey两个方法几乎完全一致：他们都没有使用锁，而是通过Unsafe对象的getObjectVolatile()方法提供的原子读语义，来获得Segment以及对应的链表，然后对链表遍历判断是否存在key相同的节点以及获得该节点的value。但由于遍历过程中其他线程可能对链表结构做了调整，因此get和containsKey返回的可能是过时的数据，这一点是ConcurrentHashMap在弱一致性上的体现。如果要求强一致性，那么必须使用Collections.synchronizedMap()方法。</p>
+<h3 id="1-8-size、containsValue"><a href="#1-8-size、containsValue" class="headerlink" title="1.8 size、containsValue"></a>1.8 size、containsValue</h3><p>这些方法都是基于整个ConcurrentHashMap来进行操作的，他们的原理也基本类似：首先不加锁循环执行以下操作：循环所有的Segment（通过Unsafe的getObjectVolatile()以保证原子读语义），获得对应的值以及所有Segment的modcount之和。如果连续两次所有Segment的modcount和相等，则过程中没有发生其他线程修改ConcurrentHashMap的情况，返回获得的值。</p>
+<p>当循环次数超过预定义的值时，这时需要对所有的Segment依次进行加锁，获取返回值后再依次解锁。值得注意的是，加锁过程中要强制创建所有的Segment，否则容易出现其他线程创建Segment并进行put，remove等操作。代码如下：</p>
+<pre><code>for(int j =0; j &lt; segments.length; ++j)
+     ensureSegment(j).lock();// force creation
+</code></pre>
+<p>一般来说，应该避免在多线程环境下使用size和containsValue方法。</p>
+<blockquote>
+<p>注1：modcount在put, replace, remove以及clear等方法中都会被修改。</p>
+</blockquote>
+<blockquote>
+<p>注2：对于containsValue方法来说，如果在循环过程中发现匹配value的HashEntry，则直接返回true。</p>
+</blockquote>
+<p>最后，与HashMap不同的是，ConcurrentHashMap并不允许key或者value为null，按照Doug Lea的说法，这么设计的原因是在ConcurrentHashMap中，一旦value出现null，则代表HashEntry的key&#x2F;value没有映射完成就被其他线程所见，需要特殊处理。在JDK6中，get方法的实现中就有一段对HashEntry.value &#x3D;&#x3D; null的防御性判断。但Doug Lea也承认实际运行过程中，这种情况似乎不可能发生。</p>
+<h2 id="2-JDK8中的实现"><a href="#2-JDK8中的实现" class="headerlink" title="2. JDK8中的实现"></a>2. JDK8中的实现</h2></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://itratel.github.io">Ratel</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://itratel.github.io/article/40616.html">https://itratel.github.io/article/40616.html</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://itratel.github.io" target="_blank">Ratel's Blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/java/">java</a><a class="post-meta__tags" href="/tags/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/">并发编程</a><a class="post-meta__tags" href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">数据结构</a></div><div class="post_share"><div class="social-share" data-image="/img/cover/go_paypal_case_study.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>打赏</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/wechat.jpg" target="_blank"><img class="post-qr-code-img" src="/img/wechat.jpg" alt="wechat"/></a><div class="post-qr-code-desc">wechat</div></li><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/article/23760.html" title="Tomcat性能优化"><img class="cover" src="/img/cover/go_index1.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">Tomcat性能优化</div></div></a></div><div class="next-post pull-right"><a href="/article/35558.html" title="为什么String类是不可变的"><img class="cover" src="/img/cover/go_index1.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">为什么String类是不可变的</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/article/28579.html" title="Consulu服务注册和发现"><img class="cover" src="/img/cover/go-env.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2018-07-05</div><div class="title">Consulu服务注册和发现</div></div></a></div><div><a href="/article/52324.html" title="Hibernate中get()和load()的区别"><img class="cover" src="/img/cover/go_index.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2018-06-03</div><div class="title">Hibernate中get()和load()的区别</div></div></a></div><div><a href="/article/32452.html" title="Java8新特性之Optional"><img class="cover" src="/img/cover/go_index1.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2017-09-15</div><div class="title">Java8新特性之Optional</div></div></a></div><div><a href="/article/23760.html" title="Tomcat性能优化"><img class="cover" src="/img/cover/go_index1.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2019-05-11</div><div class="title">Tomcat性能优化</div></div></a></div><div><a href="/article/35558.html" title="为什么String类是不可变的"><img class="cover" src="/img/cover/go_index1.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2018-07-30</div><div class="title">为什么String类是不可变的</div></div></a></div><div><a href="/article/30518.html" title="多线程之线程顺序执行"><img class="cover" src="/img/cover/go.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2017-06-03</div><div class="title">多线程之线程顺序执行</div></div></a></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/img/tantaijin.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">Ratel</div><div class="author-info__description">专注于后端和数据技术。</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">16</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">29</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">11</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/itratel"><i class="iconfont icon-youxishoubing"></i><span>关注我</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/itratel" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:whd.java@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content"><p align="center">微信号：RatelWu</p> <p align="center">QQ号：479661452</p></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-JDK1-6%E5%92%8C1-7%E4%B8%AD%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="toc-number">1.</span> <span class="toc-text">1. JDK1.6和1.7中的实现</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-%E8%AE%BE%E8%AE%A1%E6%80%9D%E8%B7%AF"><span class="toc-number">1.1.</span> <span class="toc-text">1.1 设计思路</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-%E5%B9%B6%E5%8F%91%E5%BA%A6%EF%BC%88Concurrency-Level%EF%BC%89"><span class="toc-number">1.2.</span> <span class="toc-text">1.2 并发度（Concurrency Level）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3-%E5%88%9B%E5%BB%BA%E5%88%86%E6%AE%B5%E9%94%81"><span class="toc-number">1.3.</span> <span class="toc-text">1.3 创建分段锁</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-4-put-putIfAbsent-putAll"><span class="toc-number">1.4.</span> <span class="toc-text">1.4 put&#x2F;putIfAbsent&#x2F;putAll</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-5-rehash"><span class="toc-number">1.5.</span> <span class="toc-text">1.5 rehash</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-6-remove"><span class="toc-number">1.6.</span> <span class="toc-text">1.6 remove</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-7-get%E4%B8%8EcontainsKey"><span class="toc-number">1.7.</span> <span class="toc-text">1.7 get与containsKey</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-8-size%E3%80%81containsValue"><span class="toc-number">1.8.</span> <span class="toc-text">1.8 size、containsValue</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-JDK8%E4%B8%AD%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="toc-number">2.</span> <span class="toc-text">2. JDK8中的实现</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/article/1.html" title="flinkCDC导入HUDI"><img src="/img/cover/go_paypal_case_study.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="flinkCDC导入HUDI"/></a><div class="content"><a class="title" href="/article/1.html" title="flinkCDC导入HUDI">flinkCDC导入HUDI</a><time datetime="2023-11-05T14:53:22.000Z" title="发表于 2023-11-05 22:53:22">2023-11-05</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/article/39053.html" title="New Features of Java 21 - Sequenced Collections"><img src="/img/cover/go-env.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="New Features of Java 21 - Sequenced Collections"/></a><div class="content"><a class="title" href="/article/39053.html" title="New Features of Java 21 - Sequenced Collections">New Features of Java 21 - Sequenced Collections</a><time datetime="2023-10-24T06:42:44.000Z" title="发表于 2023-10-24 14:42:44">2023-10-24</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/article/9351.html" title="Redis面试重点"><img src="/img/cover/go-env-start.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Redis面试重点"/></a><div class="content"><a class="title" href="/article/9351.html" title="Redis面试重点">Redis面试重点</a><time datetime="2019-05-11T02:44:12.000Z" title="发表于 2019-05-11 10:44:12">2019-05-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/article/52980.html" title="mysql索引使用和优化"><img src="/img/cover/go-env.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="mysql索引使用和优化"/></a><div class="content"><a class="title" href="/article/52980.html" title="mysql索引使用和优化">mysql索引使用和优化</a><time datetime="2019-05-11T02:06:18.000Z" title="发表于 2019-05-11 10:06:18">2019-05-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/article/23760.html" title="Tomcat性能优化"><img src="/img/cover/go_index1.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Tomcat性能优化"/></a><div class="content"><a class="title" href="/article/23760.html" title="Tomcat性能优化">Tomcat性能优化</a><time datetime="2019-05-10T16:33:46.000Z" title="发表于 2019-05-11 00:33:46">2019-05-11</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url('/img/cover/go_paypal_case_study.png')"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2023 By Ratel</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据库加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div><!-- hexo injector body_end start --><script data-pjax>
+  function butterfly_clock_anzhiyu_injector_config(){
+    var parent_div_git = document.getElementsByClassName('sticky_layout')[0];
+    var item_html = '<div class="card-widget card-clock"><div class="card-glass"><div class="card-background"><div class="card-content"><div id="hexo_electric_clock"><img class="entered loading" id="card-clock-loading" src="https://cdn.cbd.int/hexo-butterfly-clock-anzhiyu/lib/loading.gif" style="height: 120px; width: 100%;" data-ll-status="loading"/></div></div></div></div></div>';
+    console.log('已挂载butterfly_clock_anzhiyu')
+    if(parent_div_git) {
+      parent_div_git.insertAdjacentHTML("afterbegin",item_html)
+    }
+  }
+  var elist = 'null'.split(',');
+  var cpage = location.pathname;
+  var epage = 'all';
+  var qweather_key = 'b16a1fa0e63c46a4b8f28abfb06ae3fe';
+  var gaud_map_key = 'e2b04289e870b005374ee030148d64fd&s=rsv3';
+  var baidu_ak_key = 'undefined';
+  var flag = 0;
+  var clock_rectangle = '112.982279,28.19409';
+  var clock_default_rectangle_enable = 'false';
+
+  for (var i=0;i<elist.length;i++){
+    if (cpage.includes(elist[i])){
+      flag++;
+    }
+  }
+
+  if ((epage ==='all')&&(flag == 0)){
+    butterfly_clock_anzhiyu_injector_config();
+  }
+  else if (epage === cpage){
+    butterfly_clock_anzhiyu_injector_config();
+  }
+  </script><script src="https://widget.qweather.net/simple/static/js/he-simple-common.js?v=2.0"></script><script data-pjax src="https://cdn.cbd.int/hexo-butterfly-clock-anzhiyu/lib/clock.min.js"></script><!-- hexo injector body_end end --></body></html>
